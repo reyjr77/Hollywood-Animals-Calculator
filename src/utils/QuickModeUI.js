@@ -421,6 +421,7 @@ function MissingInputs() {
 
 function Recalculate() {
   if (!isReady) return;
+  if (typeof UpdateFitHints === "function") UpdateFitHints();   // fork addition: see utils/QuickModeFork.js
   if (!resultsRevealed) { SaveState(null); return; }   // nothing is shown until the first Calculate press; the choices are still saved
   const { missing, emptyGenreRows } = MissingInputs();
   let results = null;

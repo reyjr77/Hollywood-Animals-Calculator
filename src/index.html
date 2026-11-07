@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/QuickMode.base.css">
   <link rel="stylesheet" href="css/QuickMode.inputs.css">
   <link rel="stylesheet" href="css/QuickMode.results.css">
+  <link rel="stylesheet" href="css/QuickMode.fork.css">
 </head>
 <body>
   <a class="skip-link" href="#tagSearch">Skip to the script builder</a>
@@ -70,7 +71,11 @@
     <section class="card" aria-labelledby="storyTitle">
       <div class="card-head">
         <h2 id="storyTitle">Story elements</h2>
+        <label class="fork-toggle" for="fitHintsToggle" title="Show the compatibility and score modifier you would get from each option">
+          <input type="checkbox" id="fitHintsToggle"> Fit hints
+        </label>
       </div>
+      <p class="helper fork-hint-note" id="fitHintsNote" hidden>Pick a genre to see fit hints. Each option then shows the compatibility and score modifier you would get by choosing it, and the best one gets a ★.</p>
       <div class="grid">
         <div class="field">
           <div class="field-head"><label for="sel-setting">Setting</label><span class="hint">Required</span></div>
@@ -98,6 +103,51 @@
           <div class="stack" id="themesList" role="group" aria-labelledby="themesLabel"></div>
           <button class="btn btn-add" type="button" id="addTheme">Add theme or event</button>
         </div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="genTitle" id="generatorCard">
+      <div class="card-head">
+        <h2 id="genTitle">Script generator</h2>
+      </div>
+      <p class="helper gen-intro">Pick your genres, then let the generator fill in the story elements that fit them best. It uses the same game logic as the calculator, and only adds a tag when it improves the script.</p>
+      <div class="grid gen-options">
+        <div class="field">
+          <div class="field-head"><label for="genObjective">Aim for</label></div>
+          <div class="select-wrap"><select id="genObjective">
+            <option value="quality">Best fit (score modifier)</option>
+            <option value="art">Best fit, leaning Art</option>
+            <option value="commercial">Best fit, leaning Commercial</option>
+          </select></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="genSupporting">Supporting characters</label></div>
+          <div class="select-wrap"><select id="genSupporting"></select></div>
+        </div>
+        <div class="field">
+          <div class="field-head"><label for="genThemes">Themes and events</label></div>
+          <div class="select-wrap"><select id="genThemes"></select></div>
+        </div>
+        <fieldset class="field gen-checks">
+          <legend class="sr-only">Generator options</legend>
+          <label class="fork-check"><input type="checkbox" id="genAntagonist"> Include an antagonist</label>
+          <label class="fork-check"><input type="checkbox" id="genFinale"> Include a finale</label>
+          <label class="fork-check"><input type="checkbox" id="genKeep"> Keep the story elements I've already picked</label>
+        </fieldset>
+      </div>
+      <button class="btn btn-ghost btn-wide" type="button" id="genBtn">Generate script</button>
+      <p class="helper gen-message" id="genMessage" role="status" hidden></p>
+      <div class="gen-result" id="genResult" hidden>
+        <dl class="gen-stats">
+          <div><dt>Compatibility</dt><dd id="genCompat">–</dd></div>
+          <div><dt>Modifier</dt><dd id="genMod">–</dd></div>
+          <div><dt>Art</dt><dd class="is-art" id="genArt">–</dd></div>
+          <div><dt>Commercial</dt><dd class="is-commercial" id="genCom">–</dd></div>
+          <div><dt>Leans</dt><dd id="genLean">–</dd></div>
+        </dl>
+        <ul class="gen-list" id="genList"></ul>
+        <p class="helper">The number by each tag is how much it adds to the score modifier compared with leaving it out.</p>
+        <button class="btn btn-primary btn-wide" type="button" id="genApply">Use this script</button>
       </div>
     </section>
 
@@ -238,7 +288,8 @@
     <div class="wrap footer-row">
       <div class="footer-about">
         <p>A fan-made tool for Hollywood Animal. It is not affiliated with the game's developers. Calculations run in your browser, and your selections are saved on this device only.</p>
-        <p><a class="footer-link" href="https://github.com/CallOn84/Hollywood-Animal-Calculator" target="_blank" rel="noopener">View the project on GitHub<span class="sr-only"> (opens in a new tab)</span></a></p>
+        <p><a class="footer-link" href="https://github.com/CallOn84/Hollywood-Animal-Calculator" target="_blank" rel="noopener">View the original project on GitHub<span class="sr-only"> (opens in a new tab)</span></a></p>
+        <p><a class="footer-link" href="https://github.com/reyjr77/Hollywood-Animals-Calculator" target="_blank" rel="noopener">This fork adds fit hints and the script generator<span class="sr-only"> (opens in a new tab)</span></a></p>
       </div>
       <p class="footer-data" id="dataInfo">Loading game data…</p>
     </div>
@@ -249,6 +300,7 @@
   <script src="components/Quick%20Mode/LogicHelpers.js"></script>
   <script src="components/Quick%20Mode/ScriptCompatibility.js"></script>
   <script src="components/Quick%20Mode/FilmAppeal.js"></script>
+  <script src="components/Quick%20Mode/ScriptGenerator.js"></script>
   <script src="utils/SaveRestore.js"></script>
   <script src="utils/QuickModeGenres.js"></script>
   <script src="utils/QuickModeUI.js"></script>
@@ -256,5 +308,6 @@
   <script src="utils/QuickModeSearch.js"></script>
   <script src="utils/QuickModeInfo.js"></script>
   <script src="utils/QuickModeStart.js"></script>
+  <script src="utils/QuickModeFork.js"></script>
 </body>
 </html>

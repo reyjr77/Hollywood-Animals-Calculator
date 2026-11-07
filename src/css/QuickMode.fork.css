@@ -1,0 +1,96 @@
+/* Fork addition (reyjr77): fit hints toggle and the script generator card. Uses the tokens in QuickMode.base.css. */
+
+/* ---------- checkboxes ---------- */
+
+.fork-toggle,
+.fork-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--body);
+  cursor: pointer;
+  user-select: none;
+}
+.fork-toggle { padding: 0 var(--space-3); border: 1px solid var(--control-line); border-radius: 999px; }
+.fork-toggle:hover { border-color: var(--gold); color: var(--gold-hi); }
+.fork-toggle input,
+.fork-check input { width: 18px; height: 18px; margin: 0; accent-color: var(--gold); cursor: pointer; }
+.fork-toggle:has(input:focus-visible),
+.fork-check:has(input:focus-visible) { outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 999px; }
+
+.fork-hint-note { margin: calc(-1 * var(--space-2)) 0 var(--space-4); }
+
+/* ---------- generator ---------- */
+
+.gen-intro { margin: calc(-1 * var(--space-2)) 0 var(--space-4); }
+
+.gen-checks {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.gen-message { color: var(--body); }
+
+.gen-result {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--tile);
+  border: 1px solid var(--outline);
+  border-radius: var(--radius-tile);
+}
+
+.gen-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+.gen-stats > div { padding: var(--space-3); background: var(--field); border-radius: var(--radius-control); }
+.gen-stats dt { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); }
+.gen-stats dd { margin: var(--space-1) 0 0; font: 700 1.375rem/1.2 var(--font-display); color: var(--bone); }
+.gen-stats dd.is-art { color: var(--art); }
+.gen-stats dd.is-commercial { color: var(--commercial); }
+
+.gen-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.gen-item {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--chip);
+}
+.gen-item:last-child { border-bottom: 0; }
+.gen-cat { font-size: 0.8125rem; color: var(--muted); }
+.gen-name { font-weight: 600; color: var(--bone); overflow-wrap: anywhere; }
+.gen-kept {
+  margin-left: var(--space-2);
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--chip);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--muted);
+  vertical-align: middle;
+}
+.gen-delta { font: 700 0.9375rem/1 var(--font-display); white-space: nowrap; }
+.gen-delta.is-up { color: var(--good); }
+.gen-delta.is-down { color: var(--bad); }
+
+@media (min-width: 640px) {
+  .gen-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 639px) {
+  .gen-item { grid-template-columns: minmax(0, 1fr) auto; }
+  .gen-cat { grid-column: 1 / -1; margin-bottom: calc(-1 * var(--space-2)); }
+}
