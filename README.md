@@ -62,7 +62,7 @@ This fork tracks [CallOn84/Hollywood-Animal-Calculator](https://github.com/CallO
 * **Fit hints.** Once a genre is picked, every option in every dropdown shows the compatibility and score modifier you would get by choosing it, coloured red to green, and the best option gets a ★. Turn them off with the **Fit hints** switch.
 * **Script generator.** Pick your genres, choose what to aim for (best fit, or best fit leaning Art or Commercial) and how many supporting characters and themes you want. The generator searches for the setting, protagonist, antagonist, finale and other tags that fit best. It can keep the story elements you have already picked, and under **Tags I have unlocked** you can untick the tags you don't have in your game yet so it only uses the ones you can actually pick. **Use this script** puts the result into the calculator.
 
-The fork's code lives in `src/components/Quick Mode/ScriptGenerator.js`, `src/utils/QuickModeFork.js` and `src/css/QuickMode.fork.css`. The only upstream files it touches are `index.html` and one line in `QuickModeUI.js`. The old Python desktop version is kept on the `legacy-python` branch.
+The fork's code lives in `src/components/Quick Mode/ScriptGenerator.js`, `src/utils/QuickModeFork.js` and `src/css/QuickMode.fork.css`. The only upstream files it touches are `index.html` and one line in `QuickModeUI.js`. The old Python desktop version is kept on the `legacy-python` branch. When you change one of the fork's files, bump its `?v=` number in `index.html` so browsers fetch the new copy instead of a cached one.
 
 To sync with upstream later: `git fetch upstream && git merge upstream/main`.
 
