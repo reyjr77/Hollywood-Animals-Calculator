@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/QuickMode.base.css">
   <link rel="stylesheet" href="css/QuickMode.inputs.css">
   <link rel="stylesheet" href="css/QuickMode.results.css">
-  <link rel="stylesheet" href="css/QuickMode.fork.css?v=2">
+  <link rel="stylesheet" href="css/QuickMode.fork.css?v=3">
 </head>
 <body>
   <a class="skip-link" href="#tagSearch">Skip to the script builder</a>
@@ -138,7 +138,13 @@
       <details class="gen-avail" id="genAvail">
         <summary><span>Tags I have unlocked</span><span class="gen-avail-count" id="genAvailCount"></span></summary>
         <div class="gen-avail-body">
-          <p class="helper">Untick the tags you don't have in your game yet. The generator only uses ticked tags, plus any story elements you keep from above. Your ticks are saved in this browser.</p>
+          <p class="helper">The generator only uses ticked tags, plus any story elements you keep from above. Your ticks are saved in this browser.</p>
+          <div class="gen-avail-import">
+            <button class="btn btn-primary btn-small" type="button" id="genImportBtn">Import from game save</button>
+            <input type="file" id="genSaveFile" accept=".json,application/json" hidden>
+            <p class="helper gen-import-help">Ticks exactly the tags you have unlocked. Saves are in <code>%USERPROFILE%\AppData\LocalLow\Weappy\Hollywood Animal\Saves\Profiles\0</code>: paste that into the file picker's address bar and choose your latest save's <code>.json</code> file.</p>
+          </div>
+          <p class="helper gen-import-msg" id="genImportMsg" role="status" hidden></p>
           <div class="gen-avail-tools">
             <input class="gen-avail-filter" id="genAvailFilter" type="search" placeholder="Filter tags" aria-label="Filter tags" autocomplete="off" spellcheck="false">
             <button class="btn btn-ghost btn-small" type="button" id="genAvailAll">Tick all</button>
@@ -313,7 +319,7 @@
   <script src="components/Quick%20Mode/LogicHelpers.js"></script>
   <script src="components/Quick%20Mode/ScriptCompatibility.js"></script>
   <script src="components/Quick%20Mode/FilmAppeal.js"></script>
-  <script src="components/Quick%20Mode/ScriptGenerator.js?v=2"></script>
+  <script src="components/Quick%20Mode/ScriptGenerator.js?v=3"></script>
   <script src="utils/SaveRestore.js"></script>
   <script src="utils/QuickModeGenres.js"></script>
   <script src="utils/QuickModeUI.js"></script>
@@ -321,6 +327,6 @@
   <script src="utils/QuickModeSearch.js"></script>
   <script src="utils/QuickModeInfo.js"></script>
   <script src="utils/QuickModeStart.js"></script>
-  <script src="utils/QuickModeFork.js?v=2"></script>
+  <script src="utils/QuickModeFork.js?v=3"></script>
 </body>
 </html>

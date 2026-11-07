@@ -211,6 +211,65 @@ function BuildAvailability() {
   UpdateAvailabilityCounts();
 }
 
+// ---------- import from a game save ----------
+// A Hollywood Animal save (Saves/Profiles/<n>/<name>.json) keeps the unlocked tags in stateJson.tagPool as
+// [{ Item1: tagKey, Item2: unlockDate }]. tagBank holds tags that research can still unlock, so it is ignored.
+
+function UnlockedKeysFromSave(text) {
+  const data = JSON.parse(text.replace(/^﻿/, ""));
+  let state = data && data.stateJson !== undefined ? data.stateJson : data;
+  if (typeof state === "string") state = JSON.parse(state);
+  const pool = state && state.tagPool;
+  if (!Array.isArray(pool)) throw new Error("no tagPool in this file");
+  return pool.map((entry) => (typeof entry === "string" ? entry : entry && entry.Item1)).filter(Boolean);
+}
+
+// Ticks the save's unlocked tags, unticks the rest. Returns a summary for the message line.
+function ImportSave(text, fileName) {
+  BuildAvailability();
+  const unlocked = new Set(UnlockedKeysFromSave(text));
+  const boxes = AvailabilityBoxes();
+  for (const box of boxes) box.checked = unlocked.has(box.value);
+  $("genAvailFilter").value = "";
+  FilterAvailability();
+  SaveAvailability();
+  const story = boxes.filter((box) => box.checked).length;
+  const unknown = [...unlocked].filter((key) => !tagsByKey[key]);
+  let message = "Imported " + (fileName || "your save") + ": " + story + " of " + boxes.length + " story tags unlocked.";
+  if (unknown.length) {
+    message += " " + unknown.length + (unknown.length === 1 ? " tag" : " tags") +
+      " from your save " + (unknown.length === 1 ? "isn't" : "aren't") + " in the calculator's game data yet (" + unknown.join(", ") + ").";
+    console.info("Tags in the save but not in the database:", unknown);
+  }
+  return { story, total: boxes.length, unknown, message };
+}
+
+function ShowImportMessage(text, isError) {
+  const line = $("genImportMsg");
+  line.textContent = text;
+  line.classList.toggle("is-error", Boolean(isError));
+  line.hidden = false;
+}
+
+function InitSaveImport() {
+  const input = $("genSaveFile");
+  $("genImportBtn").addEventListener("click", () => input.click());
+  input.addEventListener("change", async () => {
+    const file = input.files && input.files[0];
+    input.value = "";   // so picking the same file again still fires
+    if (!file) return;
+    if (!isReady) { ShowImportMessage("The game data is still loading. Try again in a moment.", true); return; }
+    try {
+      const result = ImportSave(await file.text(), file.name.replace(/\.json$/i, ""));
+      ShowImportMessage(result.message, false);
+      Announce(result.message);
+    } catch (error) {
+      console.error(error);
+      ShowImportMessage("That file doesn't look like a Hollywood Animal save. Pick the .json file (not the _map or .png file with the same name).", true);
+    }
+  });
+}
+
 // The tag_ids the generator may use, or null when everything is ticked.
 function AvailableTagIds() {
   if (!unavailableTags.size) return null;
@@ -387,4 +446,5 @@ function ApplyGenerated() {
 document.addEventListener("DOMContentLoaded", () => {
   InitFitHints();
   InitGenerator();
+  InitSaveImport();
 });
