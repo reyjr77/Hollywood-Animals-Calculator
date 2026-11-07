@@ -196,6 +196,8 @@ const GENERATOR_APPEAL_WEIGHT = 0.05;
 const GENERATOR_MAX_MOVES = 80;
 const GENERATOR_STARTS = 12;      // how many of the best settings to start a search from
 const GENERATOR_EPSILON = 1e-9;
+const GENERATOR_MAX_RESULTS = 10;
+const GENERATOR_ALTERNATIVE_SEEDS = 3;   // how many of the best scripts to look for alternatives around
 
 const GENERATOR_OBJECTIVES = {
   quality:    { appeal: false, score: (r) => r.scoreModifier },
@@ -219,15 +221,19 @@ const GENERATOR_GROUPS = [
 //   limits:    { setting: 1, protagonist: 1, antagonist: 0|1, finale: 0|1, supporting: n, themes: n }
 //   objective: "quality" | "art" | "commercial"
 //   available: Set of tag_ids the player has unlocked, or null for every tag. Locked tags are always allowed.
+//   count:     how many different scripts to return, best first (default 1)
 // }
 // Setting and protagonist each need at least one available or locked tag; the caller checks this first.
-// Returns { picks: { groupKey: [{ tag, locked }] }, groups, result, contributions: { tag_id: modifier change } }.
+// Returns { scripts: [{ picks: { groupKey: [{ tag, locked }] }, result, contributions: { tag_id: modifier change } }],
+//           groups }, plus the best script's picks, result and contributions at the top level.
 //
 // Method: a local search. From a starting script, repeatedly make the single best move (add, swap or drop one tag)
 // until no move improves the objective. Setting and protagonist are filled first because a script needs them.
 // The setting decides what kind of story fits (a war film and a costume romance share almost no tags), so one search
 // tends to get stuck with whichever setting it tried first. It runs again from each of the most promising settings,
 // and a search that leans Art or Commercial also starts from the best plain-quality script. The best script wins.
+// For more than one script, every different script those searches end on is kept, and the search runs again from the
+// best scripts with one of their tags ruled out, which finds the strongest alternatives that differ from them.
 function GenerateScript(options) {
   const objectiveKey = GENERATOR_OBJECTIVES[options.objective] ? options.objective : "quality";
   const genreChosen = options.genres.map((g) => ({ tag: g.tag, percentage: g.percentage, isGenre: true }));
@@ -261,7 +267,7 @@ function GenerateScript(options) {
   const lockedOnly = {};
   for (const group of groups) lockedOnly[group.key] = group.locked.slice();
 
-  function Search(start, objective) {
+  function Search(start, objective, banned) {
     const Score = (current) => objective.score(EvaluateForSearch(Build(current), objective.appeal));
     const picks = Copy(start);
     const With = (groupKey, list) => {
@@ -285,7 +291,7 @@ function GenerateScript(options) {
 
         if (list.length < group.max) {
           for (const tag of group.candidates) {
-            if (used.has(tag.tag_id)) continue;
+            if (used.has(tag.tag_id) || (banned && banned.has(tag.tag_id))) continue;
             const added = list.concat([tag]);
             consider(Score(With(group.key, added)), group.key, added);
           }
@@ -295,7 +301,7 @@ function GenerateScript(options) {
         list.forEach((oldTag, index) => {
           if (group.lockedIds.has(oldTag.tag_id)) return;
           for (const tag of group.candidates) {
-            if (used.has(tag.tag_id)) continue;
+            if (used.has(tag.tag_id) || (banned && banned.has(tag.tag_id))) continue;
             const swapped = list.slice();
             swapped[index] = tag;
             consider(Score(With(group.key, swapped)), group.key, swapped);
@@ -318,7 +324,7 @@ function GenerateScript(options) {
     return { picks, score: Score(picks) };
   }
 
-  function BestOf(objectiveName, extraStarts) {
+  function BestOf(objectiveName, extraStarts, record) {
     const objective = GENERATOR_OBJECTIVES[objectiveName];
     const starts = extraStarts.slice();
     const settingGroup = groups.find((group) => group.key === "setting");
@@ -336,28 +342,54 @@ function GenerateScript(options) {
     let best = null;
     for (const start of starts) {
       const found = Search(start, objective);
+      if (record) record(found);
       if (!best || found.score > best.score + GENERATOR_EPSILON) best = found;
     }
     return best.picks;
   }
 
+  const count = Math.max(1, Math.min(Math.floor(options.count) || 1, GENERATOR_MAX_RESULTS));
+  const objective = GENERATOR_OBJECTIVES[objectiveKey];
+  const found = new Map();   // every different script a search ended on, keyed by its tag ids
+  const Record = (entry) => {
+    // a search with a tag ruled out can end without a setting or protagonist when nothing else is unlocked
+    if (groups.some((group) => entry.picks[group.key].length < group.min)) return;
+    const key = groups.map((group) => entry.picks[group.key].map((tag) => tag.tag_id).sort((a, b) => a - b).join(",")).join("|");
+    if (!found.has(key)) found.set(key, entry);
+  };
+  const Ranked = () => [...found.values()].sort((a, b) => b.score - a.score);
+
   const extraStarts = objectiveKey === "quality" ? [] : [BestOf("quality", [])];
-  const picks = BestOf(objectiveKey, extraStarts);
+  BestOf(objectiveKey, extraStarts, Record);
+  if (count > 1) {
+    for (const seed of Ranked().slice(0, GENERATOR_ALTERNATIVE_SEEDS)) {
+      for (const group of groups) {
+        for (const tag of seed.picks[group.key]) {
+          if (group.lockedIds.has(tag.tag_id)) continue;
+          const start = Copy(seed.picks);
+          start[group.key] = start[group.key].filter((other) => other !== tag);
+          Record(Search(start, objective, new Set([tag.tag_id])));
+        }
+      }
+    }
+  }
 
   // The numbers shown come from the upstream functions. Each tag's worth is the score modifier with it, minus the
   // score modifier without it.
-  const finalChosen = Build(picks);
-  const result = EvaluateChosen(finalChosen, true);
-  const contributions = {};
-  for (const item of finalChosen) {
-    if (item.isGenre) continue;
-    const without = finalChosen.filter((other) => other !== item);
-    contributions[item.tag.tag_id] = result.scoreModifier - EvaluateChosen(without, false).scoreModifier;
-  }
-
-  const output = {};
-  for (const group of groups) {
-    output[group.key] = picks[group.key].map((tag) => ({ tag, locked: group.lockedIds.has(tag.tag_id) }));
-  }
-  return { picks: output, groups: GENERATOR_GROUPS, result, contributions };
+  const scripts = Ranked().slice(0, count).map((entry) => {
+    const finalChosen = Build(entry.picks);
+    const result = EvaluateChosen(finalChosen, true);
+    const contributions = {};
+    for (const item of finalChosen) {
+      if (item.isGenre) continue;
+      const without = finalChosen.filter((other) => other !== item);
+      contributions[item.tag.tag_id] = result.scoreModifier - EvaluateChosen(without, false).scoreModifier;
+    }
+    const picks = {};
+    for (const group of groups) {
+      picks[group.key] = entry.picks[group.key].map((tag) => ({ tag, locked: group.lockedIds.has(tag.tag_id) }));
+    }
+    return { picks, result, contributions };
+  });
+  return Object.assign({ scripts, groups: GENERATOR_GROUPS }, scripts[0]);
 }

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="css/QuickMode.base.css">
   <link rel="stylesheet" href="css/QuickMode.inputs.css">
   <link rel="stylesheet" href="css/QuickMode.results.css">
-  <link rel="stylesheet" href="css/QuickMode.fork.css?v=3">
+  <link rel="stylesheet" href="css/QuickMode.fork.css?v=4">
 </head>
 <body>
   <a class="skip-link" href="#tagSearch">Skip to the script builder</a>
@@ -121,6 +121,14 @@
           </select></div>
         </div>
         <div class="field">
+          <div class="field-head"><label for="genCount">Results to show</label></div>
+          <div class="select-wrap"><select id="genCount">
+            <option value="1">Best script only</option>
+            <option value="3">Top 3 scripts</option>
+            <option value="5">Top 5 scripts</option>
+          </select></div>
+        </div>
+        <div class="field">
           <div class="field-head"><label for="genSupporting">Supporting characters</label></div>
           <div class="select-wrap"><select id="genSupporting"></select></div>
         </div>
@@ -156,7 +164,16 @@
       </details>
       <button class="btn btn-ghost btn-wide" type="button" id="genBtn">Generate script</button>
       <p class="helper gen-message" id="genMessage" role="status" hidden></p>
-      <div class="gen-result" id="genResult" hidden>
+      <div class="gen-result" id="genResult" role="region" aria-roledescription="carousel" aria-label="Generated scripts" hidden>
+        <div class="gen-nav" id="genNav">
+          <button class="gen-arrow" type="button" id="genPrev" aria-label="Previous script" aria-controls="genCard">&#8249;</button>
+          <div class="gen-nav-mid">
+            <p class="gen-rank"><span id="genRank">Script 1 of 1</span> <span class="gen-gap" id="genGap"></span></p>
+            <div class="gen-dots" id="genDots"></div>
+          </div>
+          <button class="gen-arrow" type="button" id="genNext" aria-label="Next script" aria-controls="genCard">&#8250;</button>
+        </div>
+        <div class="gen-card" id="genCard" aria-roledescription="slide" aria-live="polite">
         <dl class="gen-stats">
           <div><dt>Compatibility</dt><dd id="genCompat">–</dd></div>
           <div><dt>Modifier</dt><dd id="genMod">–</dd></div>
@@ -165,6 +182,7 @@
           <div><dt>Leans</dt><dd id="genLean">–</dd></div>
         </dl>
         <ul class="gen-list" id="genList"></ul>
+        </div>
         <p class="helper">The number by each tag is how much it adds to the score modifier compared with leaving it out.</p>
         <button class="btn btn-primary btn-wide" type="button" id="genApply">Use this script</button>
       </div>
@@ -319,7 +337,7 @@
   <script src="components/Quick%20Mode/LogicHelpers.js"></script>
   <script src="components/Quick%20Mode/ScriptCompatibility.js"></script>
   <script src="components/Quick%20Mode/FilmAppeal.js"></script>
-  <script src="components/Quick%20Mode/ScriptGenerator.js?v=3"></script>
+  <script src="components/Quick%20Mode/ScriptGenerator.js?v=4"></script>
   <script src="utils/SaveRestore.js"></script>
   <script src="utils/QuickModeGenres.js"></script>
   <script src="utils/QuickModeUI.js"></script>
@@ -327,6 +345,6 @@
   <script src="utils/QuickModeSearch.js"></script>
   <script src="utils/QuickModeInfo.js"></script>
   <script src="utils/QuickModeStart.js"></script>
-  <script src="utils/QuickModeFork.js?v=3"></script>
+  <script src="utils/QuickModeFork.js?v=4"></script>
 </body>
 </html>

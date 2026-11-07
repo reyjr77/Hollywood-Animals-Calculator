@@ -282,12 +282,14 @@ function AvailableTagIds() {
 
 // ---------- script generator ----------
 
-const GENERATOR_DEFAULTS = { objective: "quality", supporting: 3, themes: 3, antagonist: true, finale: true, keep: true };
+const GENERATOR_DEFAULTS = { objective: "quality", count: 5, supporting: 3, themes: 3, antagonist: true, finale: true, keep: true };
 let lastGenerated = null;
+let shownScript = 0;   // which script the carousel is showing
 
 function GeneratorSettings() {
   return {
     objective: $("genObjective").value,
+    count: Number($("genCount").value),
     supporting: Number($("genSupporting").value),
     themes: Number($("genThemes").value),
     antagonist: $("genAntagonist").checked,
@@ -307,6 +309,7 @@ function InitGenerator() {
     }
   }
   $("genObjective").value = saved.objective;
+  $("genCount").value = ["1", "3", "5"].includes(String(saved.count)) ? String(saved.count) : String(GENERATOR_DEFAULTS.count);
   $("genSupporting").value = String(Math.min(saved.supporting, MAX_SUPPORTING));
   $("genThemes").value = String(Math.min(saved.themes, MAX_THEMES_EVENTS));
   $("genAntagonist").checked = saved.antagonist;
@@ -318,6 +321,7 @@ function InitGenerator() {
   });
   $("genBtn").addEventListener("click", OnGenerate);
   $("genApply").addEventListener("click", ApplyGenerated);
+  InitCarousel();
   $("resetBtn").addEventListener("click", ClearGenerated);
 }
 
@@ -382,7 +386,8 @@ function OnGenerate() {
           supporting: settings.supporting,
           themes: settings.themes
         },
-        objective: settings.objective
+        objective: settings.objective,
+        count: settings.count
       });
       RenderGenerated(lastGenerated);
     } catch (error) {
@@ -395,10 +400,72 @@ function OnGenerate() {
   }, 20);
 }
 
+// ---------- results carousel ----------
+
+function InitCarousel() {
+  $("genPrev").addEventListener("click", () => ShowScript(shownScript - 1, -1));
+  $("genNext").addEventListener("click", () => ShowScript(shownScript + 1, 1));
+  $("genResult").addEventListener("keydown", (event) => {
+    if (event.target.closest("select, input")) return;
+    if (event.key === "ArrowLeft") { event.preventDefault(); ShowScript(shownScript - 1, -1); }
+    if (event.key === "ArrowRight") { event.preventDefault(); ShowScript(shownScript + 1, 1); }
+  });
+  // swipe on touch screens
+  const card = $("genCard");
+  let startX = null;
+  let startY = null;
+  card.addEventListener("pointerdown", (event) => { startX = event.clientX; startY = event.clientY; });
+  card.addEventListener("pointerup", (event) => {
+    if (startX === null) return;
+    const dx = event.clientX - startX;
+    const dy = event.clientY - startY;
+    startX = null;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) ShowScript(shownScript + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
+  });
+  card.addEventListener("pointercancel", () => { startX = null; });
+}
+
 function RenderGenerated(generated) {
-  const result = generated.result;
-  const compatText = result.compatibility.toFixed(1);
-  $("genCompat").textContent = compatText;
+  const count = generated.scripts.length;
+  const dots = $("genDots");
+  dots.textContent = "";
+  for (let i = 0; i < count; i++) {
+    const dot = MakeEl("button", "gen-dot");
+    dot.type = "button";
+    dot.setAttribute("aria-label", "Show script " + (i + 1));
+    dot.addEventListener("click", () => ShowScript(i, i > shownScript ? 1 : -1));
+    dots.appendChild(dot);
+  }
+  $("genNav").hidden = count < 2;
+  $("genResult").hidden = false;
+  ShowScript(0, 0);
+  const best = generated.scripts[0].result;
+  const what = count > 1 ? count + " scripts generated. Best: " : "Script generated. ";
+  Announce(what + "compatibility " + best.compatibility.toFixed(1) + " out of 5, score modifier " + Signed(best.scoreModifier * 100, 1, "%") + ".");
+}
+
+// Show script `index` (wrapping round at either end). `direction` picks the slide-in animation.
+function ShowScript(index, direction) {
+  if (!lastGenerated) return;
+  const scripts = lastGenerated.scripts;
+  const count = scripts.length;
+  shownScript = ((index % count) + count) % count;
+  const script = scripts[shownScript];
+  const result = script.result;
+
+  $("genRank").textContent = shownScript === 0 ? "Best script" + (count > 1 ? " (1 of " + count + ")" : "") : "Script " + (shownScript + 1) + " of " + count;
+  const gap = (result.scoreModifier - scripts[0].result.scoreModifier) * 100;
+  if (shownScript === 0) $("genGap").textContent = "";
+  else if (Math.abs(gap) < 0.05) $("genGap").textContent = "same modifier as best";
+  else $("genGap").textContent = Signed(gap, 1, "%") + " modifier vs best";
+  $("genDots").querySelectorAll(".gen-dot").forEach((dot, i) => {
+    dot.classList.toggle("is-current", i === shownScript);
+    if (i === shownScript) dot.setAttribute("aria-current", "true"); else dot.removeAttribute("aria-current");
+  });
+  $("genCard").setAttribute("aria-label", "Script " + (shownScript + 1) + " of " + count);
+  $("genApply").textContent = count > 1 ? "Use script " + (shownScript + 1) : "Use this script";
+
+  $("genCompat").textContent = result.compatibility.toFixed(1);
   $("genCompat").style.color = ScaleColor((result.compatibility - 1) / 4);
   $("genMod").textContent = Signed(result.scoreModifier * 100, 1, "%");
   $("genMod").style.color = ScaleColor(0.5 + Clamp(result.scoreModifier * 100 / MODIFIER_SCALE_PERCENT, -1, 1) / 2);
@@ -408,27 +475,35 @@ function RenderGenerated(generated) {
 
   const list = $("genList");
   list.textContent = "";
-  for (const group of generated.groups) {
-    for (const pick of generated.picks[group.key]) {
+  const best = scripts[0];
+  const inBest = new Set(lastGenerated.groups.flatMap((group) => best.picks[group.key].map((pick) => pick.tag.tag_id)));
+  for (const group of lastGenerated.groups) {
+    for (const pick of script.picks[group.key]) {
       const item = MakeEl("li", "gen-item");
       item.appendChild(MakeEl("span", "gen-cat", pick.tag.category === "Event" ? "Event" : group.label));
       const name = MakeEl("span", "gen-name", pick.tag.name);
       if (pick.locked) name.appendChild(MakeEl("span", "gen-kept", "kept"));
+      else if (shownScript > 0 && !inBest.has(pick.tag.tag_id)) name.appendChild(MakeEl("span", "gen-kept gen-new", "different"));
       item.appendChild(name);
-      const change = generated.contributions[pick.tag.tag_id] || 0;
+      const change = script.contributions[pick.tag.tag_id] || 0;
       const delta = MakeEl("span", "gen-delta " + (change >= 0 ? "is-up" : "is-down"), Signed(change * 100, 1, "%"));
       delta.title = "Score modifier with this tag, compared with leaving it out";
       item.appendChild(delta);
       list.appendChild(item);
     }
   }
-  $("genResult").hidden = false;
-  Announce("Script generated. Compatibility " + compatText + " out of 5, score modifier " + $("genMod").textContent + ".");
+
+  const card = $("genCard");
+  card.classList.remove("slide-next", "slide-prev");
+  if (direction) {
+    void card.offsetWidth;   // restart the animation
+    card.classList.add(direction > 0 ? "slide-next" : "slide-prev");
+  }
 }
 
 function ApplyGenerated() {
   if (!lastGenerated) return;
-  const picks = lastGenerated.picks;
+  const picks = lastGenerated.scripts[shownScript].picks;
   const first = (key) => (picks[key][0] ? picks[key][0].tag.tag_key : "");
   setting.value = first("setting");
   protagonist.value = first("protagonist");
@@ -440,7 +515,7 @@ function ApplyGenerated() {
   for (const pick of picks.themes) themeEventEntries.push({ value: pick.tag.tag_key });
   RenderAll();
   OnCalculate();   // reveals the results and scrolls to them, the same as pressing Calculate
-  Announce("Generated script applied.");
+  Announce("Script " + (shownScript + 1) + " applied.");
 }
 
 document.addEventListener("DOMContentLoaded", () => {
