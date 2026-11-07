@@ -218,7 +218,9 @@ const GENERATOR_GROUPS = [
 //   locked:    { setting: [tag], supporting: [tag], ... } tags to keep (may be empty)
 //   limits:    { setting: 1, protagonist: 1, antagonist: 0|1, finale: 0|1, supporting: n, themes: n }
 //   objective: "quality" | "art" | "commercial"
+//   available: Set of tag_ids the player has unlocked, or null for every tag. Locked tags are always allowed.
 // }
+// Setting and protagonist each need at least one available or locked tag; the caller checks this first.
 // Returns { picks: { groupKey: [{ tag, locked }] }, groups, result, contributions: { tag_id: modifier change } }.
 //
 // Method: a local search. From a starting script, repeatedly make the single best move (add, swap or drop one tag)
@@ -234,11 +236,13 @@ function GenerateScript(options) {
     const locked = (options.locked && options.locked[group.key]) || [];
     const required = group.key === "setting" || group.key === "protagonist" ? 1 : 0;
     const max = Math.max(locked.length, options.limits[group.key] || 0, required);
+    const lockedIds = new Set(locked.map((tag) => tag.tag_id));
     const candidates = [];
     for (const category of group.categories) {
-      for (const tag of tagsByCategory[category] || []) candidates.push(tag);
+      for (const tag of tagsByCategory[category] || []) {
+        if (!options.available || options.available.has(tag.tag_id) || lockedIds.has(tag.tag_id)) candidates.push(tag);
+      }
     }
-    const lockedIds = new Set(locked.map((tag) => tag.tag_id));
     return { key: group.key, min: Math.max(required, locked.length), max, locked, lockedIds, candidates };
   });
 

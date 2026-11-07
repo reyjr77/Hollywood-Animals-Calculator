@@ -135,6 +135,19 @@
           <label class="fork-check"><input type="checkbox" id="genKeep"> Keep the story elements I've already picked</label>
         </fieldset>
       </div>
+      <details class="gen-avail" id="genAvail">
+        <summary><span>Tags I have unlocked</span><span class="gen-avail-count" id="genAvailCount"></span></summary>
+        <div class="gen-avail-body">
+          <p class="helper">Untick the tags you don't have in your game yet. The generator only uses ticked tags, plus any story elements you keep from above. Your ticks are saved in this browser.</p>
+          <div class="gen-avail-tools">
+            <input class="gen-avail-filter" id="genAvailFilter" type="search" placeholder="Filter tags" aria-label="Filter tags" autocomplete="off" spellcheck="false">
+            <button class="btn btn-ghost btn-small" type="button" id="genAvailAll">Tick all</button>
+            <button class="btn btn-ghost btn-small" type="button" id="genAvailNone">Untick all</button>
+          </div>
+          <p class="helper" id="genAvailEmpty" hidden>No tags match that filter.</p>
+          <div id="genAvailGroups"></div>
+        </div>
+      </details>
       <button class="btn btn-ghost btn-wide" type="button" id="genBtn">Generate script</button>
       <p class="helper gen-message" id="genMessage" role="status" hidden></p>
       <div class="gen-result" id="genResult" hidden>

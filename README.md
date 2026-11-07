@@ -60,7 +60,7 @@
 This fork tracks [CallOn84/Hollywood-Animal-Calculator](https://github.com/CallOn84/Hollywood-Animal-Calculator) and adds two features on top of Quick Mode. Both use the upstream game formulas (`ScriptCompatibility` and `FilmAppealSide`), so they stay correct when upstream updates the logic.
 
 * **Fit hints.** Once a genre is picked, every option in every dropdown shows the compatibility and score modifier you would get by choosing it, coloured red to green, and the best option gets a ★. Turn them off with the **Fit hints** switch.
-* **Script generator.** Pick your genres, choose what to aim for (best fit, or best fit leaning Art or Commercial) and how many supporting characters and themes you want. The generator searches for the setting, protagonist, antagonist, finale and other tags that fit best. It can keep the story elements you have already picked. **Use this script** puts the result into the calculator.
+* **Script generator.** Pick your genres, choose what to aim for (best fit, or best fit leaning Art or Commercial) and how many supporting characters and themes you want. The generator searches for the setting, protagonist, antagonist, finale and other tags that fit best. It can keep the story elements you have already picked, and under **Tags I have unlocked** you can untick the tags you don't have in your game yet so it only uses the ones you can actually pick. **Use this script** puts the result into the calculator.
 
 The fork's code lives in `src/components/Quick Mode/ScriptGenerator.js`, `src/utils/QuickModeFork.js` and `src/css/QuickMode.fork.css`. The only upstream files it touches are `index.html` and one line in `QuickModeUI.js`. The old Python desktop version is kept on the `legacy-python` branch.
 

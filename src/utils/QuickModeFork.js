@@ -58,6 +58,7 @@ function HintText(label, result, isBest) {
 
 function UpdateFitHints() {
   if (!isReady) return;
+  BuildAvailability();   // the first call after the game data loads builds the unlocked-tags checklist
   const toggle = $("fitHintsToggle");
   if (toggle) toggle.checked = fitHintsOn;
   const hasGenre = genreEntries.some((entry) => entry.tag_key);
@@ -100,6 +101,124 @@ function InitFitHints() {
     UpdateFitHints();
     Announce(fitHintsOn ? "Fit hints on." : "Fit hints off.");
   });
+}
+
+// ---------- unlocked tags ----------
+// A checklist of every story tag. The generator only picks ticked tags, so players can match what they have unlocked
+// in their own game. Stored as the unticked tag keys, so tags added in a game update start out ticked.
+
+const UNAVAILABLE_KEY = "hollywood_animal_unavailable_tags";
+const AVAILABILITY_GROUPS = [
+  { label: "Settings", category: "Setting" },
+  { label: "Protagonists", category: "Protagonist" },
+  { label: "Antagonists", category: "Antagonist" },
+  { label: "Supporting characters", category: "Supporting Character" },
+  { label: "Themes", category: "Theme" },
+  { label: "Events", category: "Event" },
+  { label: "Finales", category: "Finale" }
+];
+let unavailableTags = new Set(ReadStored(UNAVAILABLE_KEY, []));
+let availabilityBuilt = false;
+
+function AvailabilityBoxes(scope) {
+  return [...(scope || $("genAvailGroups")).querySelectorAll("input[type=checkbox]")];
+}
+
+function SaveAvailability() {
+  unavailableTags = new Set(AvailabilityBoxes().filter((box) => !box.checked).map((box) => box.value));
+  WriteStored(UNAVAILABLE_KEY, [...unavailableTags]);
+  UpdateAvailabilityCounts();
+}
+
+function UpdateAvailabilityCounts() {
+  let total = 0;
+  let ticked = 0;
+  document.querySelectorAll(".gen-avail-group").forEach((group) => {
+    const boxes = AvailabilityBoxes(group);
+    const on = boxes.filter((box) => box.checked).length;
+    group.querySelector(".gen-avail-n").textContent = on + " of " + boxes.length;
+    total += boxes.length;
+    ticked += on;
+  });
+  $("genAvailCount").textContent = ticked === total ? "All " + total + " tags" : ticked + " of " + total + " tags";
+}
+
+// Tick or untick the boxes in `scope` that the filter is showing.
+function SetAvailability(scope, value) {
+  for (const box of AvailabilityBoxes(scope)) {
+    if (!box.closest(".gen-avail-tag").hidden) box.checked = value;
+  }
+  SaveAvailability();
+}
+
+function FilterAvailability() {
+  const query = $("genAvailFilter").value.trim().toLowerCase();
+  let shown = 0;
+  document.querySelectorAll(".gen-avail-group").forEach((group) => {
+    let groupShown = 0;
+    group.querySelectorAll(".gen-avail-tag").forEach((label) => {
+      label.hidden = query !== "" && !label.dataset.name.includes(query);
+      if (!label.hidden) groupShown++;
+    });
+    group.hidden = groupShown === 0;
+    shown += groupShown;
+  });
+  $("genAvailEmpty").hidden = shown > 0;
+}
+
+function BuildAvailability() {
+  if (availabilityBuilt || !isReady) return;
+  availabilityBuilt = true;
+  const host = $("genAvailGroups");
+  AVAILABILITY_GROUPS.forEach((group, index) => {
+    const tags = (tagsByCategory[group.category] || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+    if (!tags.length) return;
+    const section = MakeEl("div", "gen-avail-group");
+    section.setAttribute("role", "group");
+    section.setAttribute("aria-labelledby", "genAvailTitle-" + index);
+    const head = MakeEl("div", "gen-avail-head");
+    const title = MakeEl("span", "gen-avail-title", group.label);
+    title.id = "genAvailTitle-" + index;
+    head.appendChild(title);
+    head.appendChild(MakeEl("span", "gen-avail-n"));
+    for (const [text, value] of [["All", true], ["None", false]]) {
+      const button = MakeEl("button", "gen-avail-link", text);
+      button.type = "button";
+      button.setAttribute("aria-label", (value ? "Tick all " : "Untick all ") + group.label.toLowerCase());
+      button.addEventListener("click", () => SetAvailability(section, value));
+      head.appendChild(button);
+    }
+    section.appendChild(head);
+    const grid = MakeEl("div", "gen-avail-grid");
+    for (const tag of tags) {
+      const label = MakeEl("label", "fork-check gen-avail-tag");
+      label.dataset.name = tag.name.toLowerCase();
+      const box = document.createElement("input");
+      box.type = "checkbox";
+      box.value = tag.tag_key;
+      box.checked = !unavailableTags.has(tag.tag_key);
+      label.appendChild(box);
+      label.appendChild(document.createTextNode(tag.name));
+      grid.appendChild(label);
+    }
+    section.appendChild(grid);
+    host.appendChild(section);
+  });
+  host.addEventListener("change", (event) => { if (event.target.type === "checkbox") SaveAvailability(); });
+  $("genAvailFilter").addEventListener("input", FilterAvailability);
+  $("genAvailAll").addEventListener("click", () => SetAvailability(host, true));
+  $("genAvailNone").addEventListener("click", () => SetAvailability(host, false));
+  UpdateAvailabilityCounts();
+}
+
+// The tag_ids the generator may use, or null when everything is ticked.
+function AvailableTagIds() {
+  if (!unavailableTags.size) return null;
+  const ids = new Set();
+  for (const id in tagsById) {
+    if (!unavailableTags.has(tagsById[id].tag_key)) ids.add(tagsById[id].tag_id);
+  }
+  return ids;
 }
 
 // ---------- script generator ----------
@@ -174,6 +293,17 @@ function OnGenerate() {
   if (named.length !== genreEntries.length) { GeneratorMessage("Choose a genre in each genre row, or remove the empty ones."); return; }
 
   const settings = GeneratorSettings();
+  const available = AvailableTagIds();
+  const locked = settings.keep ? LockedFromPage() : {};
+  for (const [key, category, name] of [["setting", "Setting", "setting"], ["protagonist", "Protagonist", "protagonist"]]) {
+    const hasLocked = locked[key] && locked[key].length;
+    const hasAvailable = !available || (tagsByCategory[category] || []).some((tag) => available.has(tag.tag_id));
+    if (!hasLocked && !hasAvailable) {
+      GeneratorMessage("Every script needs a " + name + ". Tick at least one in “Tags I have unlocked”, or pick one above and keep it.");
+      return;
+    }
+  }
+
   const button = $("genBtn");
   button.disabled = true;
   button.textContent = "Generating…";
@@ -184,7 +314,8 @@ function OnGenerate() {
     try {
       lastGenerated = GenerateScript({
         genres: named.map((entry) => ({ tag: tagsByKey[entry.tag_key], percentage: entry.percentage })),
-        locked: settings.keep ? LockedFromPage() : {},
+        locked,
+        available,
         limits: {
           setting: 1, protagonist: 1,
           antagonist: settings.antagonist ? 1 : 0,
