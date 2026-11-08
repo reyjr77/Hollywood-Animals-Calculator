@@ -463,6 +463,10 @@ function RenderGenerated(generated) {
 // The order the game's script screen uses: setting, then protagonist and antagonist, supporting characters, themes
 // and events, and the finale last. (Display only: the search itself fills setting and protagonist first.)
 const RESULT_ORDER = ["setting", "protagonist", "antagonist", "supporting", "themes", "finale"];
+const RESULT_TITLES = {
+  setting: "Setting", protagonist: "Protagonist", antagonist: "Antagonist",
+  supporting: "Supporting characters", themes: "Themes and events", finale: "Finale"
+};
 function ResultOrder(groups) {
   return groups.slice().sort((a, b) => RESULT_ORDER.indexOf(a.key) - RESULT_ORDER.indexOf(b.key));
 }
@@ -501,19 +505,31 @@ function ShowScript(index, direction) {
   const best = scripts[0];
   const inBest = new Set(lastGenerated.groups.flatMap((group) => best.picks[group.key].map((pick) => pick.tag.tag_id)));
   for (const group of ResultOrder(lastGenerated.groups)) {
-    for (const pick of script.picks[group.key]) {
+    const picks = script.picks[group.key];
+    if (!picks.length) continue;
+    const block = MakeEl("li", "gen-group");
+    const head = MakeEl("div", "gen-cat");
+    head.appendChild(MakeEl("span", "gen-cat-name", RESULT_TITLES[group.key] || group.label));
+    if (picks.length > 1) head.appendChild(MakeEl("span", "gen-cat-count", String(picks.length)));
+    block.appendChild(head);
+    const items = MakeEl("ul", "gen-items");
+    items.setAttribute("aria-label", RESULT_TITLES[group.key] || group.label);
+    for (const pick of picks) {
       const item = MakeEl("li", "gen-item");
-      item.appendChild(MakeEl("span", "gen-cat", pick.tag.category === "Event" ? "Event" : group.label));
       const name = MakeEl("span", "gen-name", pick.tag.name);
+      if (group.key === "themes") name.appendChild(MakeEl("span", "gen-kind", pick.tag.category === "Event" ? "Event" : "Theme"));
       if (pick.locked) name.appendChild(MakeEl("span", "gen-kept", "kept"));
       else if (shownScript > 0 && !inBest.has(pick.tag.tag_id)) name.appendChild(MakeEl("span", "gen-kept gen-new", "different"));
       item.appendChild(name);
       const change = script.contributions[pick.tag.tag_id] || 0;
-      const delta = MakeEl("span", "gen-delta " + (change >= 0 ? "is-up" : "is-down"), Signed(change * 100, 1, "%"));
+      const tone = Math.abs(change) < 0.0005 ? "is-flat" : change > 0 ? "is-up" : "is-down";   // under 0.05% rounds to 0.0%
+      const delta = MakeEl("span", "gen-delta " + tone, Signed(change * 100, 1, "%"));
       delta.title = "Score modifier with this tag, compared with leaving it out";
       item.appendChild(delta);
-      list.appendChild(item);
+      items.appendChild(item);
     }
+    block.appendChild(items);
+    list.appendChild(block);
   }
 
   const card = $("genCard");
