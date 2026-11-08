@@ -140,7 +140,9 @@ function UpdateAvailabilityCounts() {
     total += boxes.length;
     ticked += on;
   });
-  $("genAvailCount").textContent = ticked === total ? "All " + total + " tags" : ticked + " of " + total + " tags";
+  const text = ticked === total ? "All " + total + " tags" : ticked + " of " + total + " tags";
+  $("genAvailCount").textContent = text;
+  if ($("genSheetCount")) $("genSheetCount").textContent = text + " ticked";
 }
 
 // Tick or untick the boxes in `scope` that the filter is showing.
@@ -286,10 +288,20 @@ const GENERATOR_DEFAULTS = { objective: "quality", count: 5, supporting: 3, them
 let lastGenerated = null;
 let shownScript = 0;   // which script the carousel is showing
 
+function RadioValue(name, fallback) {
+  const checked = document.querySelector('input[name="' + name + '"]:checked');
+  return checked ? checked.value : fallback;
+}
+
+function SetRadio(name, value) {
+  const radio = document.querySelector('input[name="' + name + '"][value="' + value + '"]');
+  if (radio) radio.checked = true;
+}
+
 function GeneratorSettings() {
   return {
-    objective: $("genObjective").value,
-    count: Number($("genCount").value),
+    objective: RadioValue("genObjective", GENERATOR_DEFAULTS.objective),
+    count: Number(RadioValue("genCount", String(GENERATOR_DEFAULTS.count))),
     supporting: Number($("genSupporting").value),
     themes: Number($("genThemes").value),
     antagonist: $("genAntagonist").checked,
@@ -308,15 +320,15 @@ function InitGenerator() {
       select.appendChild(option);
     }
   }
-  $("genObjective").value = saved.objective;
-  $("genCount").value = ["1", "3", "5"].includes(String(saved.count)) ? String(saved.count) : String(GENERATOR_DEFAULTS.count);
+  SetRadio("genObjective", GENERATOR_OBJECTIVES[saved.objective] ? saved.objective : GENERATOR_DEFAULTS.objective);
+  SetRadio("genCount", ["1", "3", "5"].includes(String(saved.count)) ? String(saved.count) : String(GENERATOR_DEFAULTS.count));
   $("genSupporting").value = String(Math.min(saved.supporting, MAX_SUPPORTING));
   $("genThemes").value = String(Math.min(saved.themes, MAX_THEMES_EVENTS));
   $("genAntagonist").checked = saved.antagonist;
   $("genFinale").checked = saved.finale;
   $("genKeep").checked = saved.keep;
 
-  $("generatorCard").addEventListener("change", (event) => {
+  $("panelGenerate").addEventListener("change", (event) => {
     if (event.target.closest(".gen-options")) WriteStored(GENERATOR_KEY, GeneratorSettings());
   });
   $("genBtn").addEventListener("click", OnGenerate);
@@ -328,11 +340,13 @@ function InitGenerator() {
 function ClearGenerated() {
   lastGenerated = null;
   $("genResult").hidden = true;
+  if ($("genEmpty")) $("genEmpty").hidden = false;
   $("genMessage").hidden = true;
 }
 
 function GeneratorMessage(text) {
   $("genResult").hidden = true;
+  if ($("genEmpty")) $("genEmpty").hidden = false;
   $("genMessage").textContent = text;
   $("genMessage").hidden = false;
 }
@@ -362,7 +376,7 @@ function OnGenerate() {
     const hasLocked = locked[key] && locked[key].length;
     const hasAvailable = !available || (tagsByCategory[category] || []).some((tag) => available.has(tag.tag_id));
     if (!hasLocked && !hasAvailable) {
-      GeneratorMessage("Every script needs a " + name + ". Tick at least one in “Tags I have unlocked”, or pick one above and keep it.");
+      GeneratorMessage("Every script needs a " + name + ". Tick at least one under Unlocked tags, or pick one in Story elements and turn on Keep what I've already picked.");
       return;
     }
   }
@@ -437,7 +451,9 @@ function RenderGenerated(generated) {
     dots.appendChild(dot);
   }
   $("genNav").hidden = count < 2;
+  if ($("genEmpty")) $("genEmpty").hidden = true;
   $("genResult").hidden = false;
+  if (typeof RevealGenerated === "function") RevealGenerated();   // see QuickModeLayout.js
   ShowScript(0, 0);
   const best = generated.scripts[0].result;
   const what = count > 1 ? count + " scripts generated. Best: " : "Script generated. ";
@@ -514,7 +530,8 @@ function ApplyGenerated() {
   themeEventEntries.length = 0;
   for (const pick of picks.themes) themeEventEntries.push({ value: pick.tag.tag_key });
   RenderAll();
-  OnCalculate();   // reveals the results and scrolls to them, the same as pressing Calculate
+  if (typeof ShowAppliedScript === "function") ShowAppliedScript();   // see QuickModeLayout.js
+  else OnCalculate();   // reveals the results and scrolls to them, the same as pressing Calculate
   Announce("Script " + (shownScript + 1) + " applied.");
 }
 
