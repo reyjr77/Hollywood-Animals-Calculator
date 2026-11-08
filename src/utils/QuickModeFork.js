@@ -128,6 +128,77 @@ function SaveAvailability() {
   unavailableTags = new Set(AvailabilityBoxes().filter((box) => !box.checked).map((box) => box.value));
   WriteStored(UNAVAILABLE_KEY, [...unavailableTags]);
   UpdateAvailabilityCounts();
+  ScheduleStoryRefresh();
+}
+
+// ---------- the story dropdowns and the search only offer unlocked tags ----------
+// Genres are not part of the checklist, so they are never filtered. A tag that is already picked stays in its
+// dropdown even when it is unticked, so a saved script never silently loses a pick.
+
+function IsUnlocked(tagKey) {
+  return !unavailableTags.has(tagKey);
+}
+
+const UpstreamOptionsFor = OptionsFor;
+OptionsFor = function (select, placeholder, groups, selected, taken) {
+  if (select.dataset.genre === undefined && unavailableTags.size) {
+    groups = groups.map((group) => Object.assign({}, group, {
+      options: group.options.filter((option) => IsUnlocked(option.value) || option.value === selected)
+    }));
+  }
+  UpstreamOptionsFor(select, placeholder, groups, selected, taken);
+  if (select.dataset.genre === undefined) {
+    for (const option of select.options) {
+      if (option.value && !IsUnlocked(option.value)) option.textContent += " (not unlocked)";
+    }
+  }
+};
+
+// Same ranking as upstream SearchTags() in QuickModeSearch.js, skipping story tags that are not unlocked.
+SearchTags = function (query) {
+  const needle = query.trim().toLowerCase();
+  if (needle === "") return [];
+  const scored = [];
+  for (const tag of Object.values(tagsByKey)) {
+    if (tag.category !== "Genre" && !IsUnlocked(tag.tag_key)) continue;
+    const name = tag.name.toLowerCase();
+    const at = name.indexOf(needle);
+    if (at < 0) continue;
+    const wordStart = at === 0 || name.charAt(at - 1) === " ";
+    scored.push({ tag, rank: at === 0 ? 0 : wordStart ? 1 : 2 });
+  }
+  scored.sort((a, b) => a.rank - b.rank || a.tag.name.localeCompare(b.tag.name) || a.tag.sort_order - b.tag.sort_order);
+  return scored.slice(0, SEARCH_MAX_RESULTS).map((entry) => entry.tag);
+};
+
+// Ticking several boxes in a row rebuilds the dropdowns once.
+let storyRefreshQueued = false;
+function ScheduleStoryRefresh() {
+  if (storyRefreshQueued || !isReady) return;
+  storyRefreshQueued = true;
+  queueMicrotask(() => {
+    storyRefreshQueued = false;
+    RenderSingles();
+    RenderLists();
+    RefreshAfterChange();
+    UpdateStoryAvailNote();
+  });
+}
+
+// "Showing 53 of 242 unlocked tags" above the story fields, while anything is unticked.
+function UpdateStoryAvailNote() {
+  const note = $("storyAvailNote");
+  if (!note || !isReady) return;
+  let total = 0;
+  let unlocked = 0;
+  for (const group of AVAILABILITY_GROUPS) {
+    for (const tag of tagsByCategory[group.category] || []) {
+      total++;
+      if (IsUnlocked(tag.tag_key)) unlocked++;
+    }
+  }
+  note.hidden = unlocked === total;
+  $("storyAvailText").textContent = "Showing only your unlocked tags: " + unlocked + " of " + total;
 }
 
 function UpdateAvailabilityCounts() {

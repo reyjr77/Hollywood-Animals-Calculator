@@ -61,6 +61,7 @@ const ForkUpdateFitHints = UpdateFitHints;
 UpdateFitHints = function () {
   ForkUpdateFitHints();
   UpdateReadyList();
+  UpdateStoryAvailNote();
 };
 
 // ---------- step 2: pick by hand, or generate ----------
@@ -134,10 +135,12 @@ function RevealGenerated() {
 
 // ---------- unlocked-tags sheet ----------
 
+let sheetOpener = null;
 function OpenAvailabilitySheet() {
   BuildAvailability();
   const sheet = $("availSheet");
   if (sheet.open) return;
+  sheetOpener = document.activeElement;
   document.documentElement.classList.add("sheet-open");
   sheet.showModal();
   $("availClose").focus();
@@ -146,11 +149,13 @@ function OpenAvailabilitySheet() {
 function InitSheet() {
   const sheet = $("availSheet");
   $("genAvailOpen").addEventListener("click", OpenAvailabilitySheet);
+  $("storyAvailNote").addEventListener("click", OpenAvailabilitySheet);
   for (const id of ["availClose", "availDone"]) $(id).addEventListener("click", () => sheet.close());
   sheet.addEventListener("click", (event) => { if (event.target === sheet) sheet.close(); });   // a click on the dimmed backdrop
   sheet.addEventListener("close", () => {
     document.documentElement.classList.remove("sheet-open");
-    $("genAvailOpen").focus({ preventScroll: true });
+    const back = sheetOpener && sheetOpener.isConnected && !sheetOpener.closest("[hidden]") ? sheetOpener : null;
+    if (back) back.focus({ preventScroll: true });
   });
 }
 

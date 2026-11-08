@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="css/QuickMode.inputs.css">
   <link rel="stylesheet" href="css/QuickMode.results.css">
   <link rel="stylesheet" href="css/QuickMode.fork.css?v=5">
-  <link rel="stylesheet" href="css/QuickMode.layout.css?v=7">
+  <link rel="stylesheet" href="css/QuickMode.layout.css?v=8">
 </head>
 <body>
   <a class="skip-link" href="#genre-0">Skip to the script builder</a>
@@ -95,6 +95,11 @@
           </label>
         </div>
         <p class="helper fork-hint-note" id="fitHintsNote" hidden>Pick a genre to see fit hints. Each option then shows the compatibility and score modifier you would get by choosing it, and the best one gets a ★.</p>
+        <button class="avail-note" type="button" id="storyAvailNote" aria-haspopup="dialog" aria-controls="availSheet" hidden>
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><rect x="3" y="7" width="10" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          <span id="storyAvailText">Showing only your unlocked tags</span>
+          <span class="avail-note-edit">Edit</span>
+        </button>
         <div class="grid story-grid">
           <div class="field">
             <div class="field-head"><label for="sel-setting">Setting</label><span class="hint">Required</span></div>
@@ -407,7 +412,7 @@
   <script src="utils/QuickModeSearch.js"></script>
   <script src="utils/QuickModeInfo.js"></script>
   <script src="utils/QuickModeStart.js"></script>
-  <script src="utils/QuickModeFork.js?v=8"></script>
-  <script src="utils/QuickModeLayout.js?v=5"></script>
+  <script src="utils/QuickModeFork.js?v=10"></script>
+  <script src="utils/QuickModeLayout.js?v=6"></script>
 </body>
 </html>
