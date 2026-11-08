@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#08080a">
+  <meta name="description" content="See which Hollywood Animal characters take which gifts, read straight from your save.">
+  <title>Gift Guide · Hollywood Animal Calculator</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="256x256" href="assets/favicon-256.png">
+  <link rel="stylesheet" href="css/QuickMode.base.css">
+  <link rel="stylesheet" href="css/QuickMode.inputs.css">
+  <link rel="stylesheet" href="css/QuickMode.fork.css?v=5">
+  <link rel="stylesheet" href="css/QuickMode.layout.css?v=9">
+  <link rel="stylesheet" href="css/GiftGuide.css?v=4">
+</head>
+<body class="gift-page">
+  <a class="skip-link" href="#roster">Skip to the people list</a>
+
+  <header class="site-header">
+    <div class="header-row">
+      <div class="brand">
+        <h1 class="brand-name">Hollywood <span class="accent">Animal</span> <span class="brand-sub">Calculator</span></h1>
+        <span class="brand-version">v3.0.0</span>
+      </div>
+      <nav class="mode-nav" aria-label="Calculator mode">
+        <a class="btn btn-mode" href="index.html">Quick Mode</a>
+        <a class="btn btn-mode is-current" href="gifts.html" aria-current="page">Gift Guide</a>
+        <button class="btn btn-mode" type="button" disabled aria-disabled="true">Advanced Mode<span class="soon">Coming Soon!</span></button>
+      </nav>
+    </div>
+  </header>
+
+  <p class="toast" id="toast" aria-hidden="true"></p>
+  <p class="sr-only" id="statusLive" role="status" aria-live="polite"></p>
+
+  <!-- Before a save is imported -->
+  <section class="gg-welcome" id="welcome" aria-labelledby="welcomeTitle" hidden>
+    <div class="gg-welcome-card">
+      <svg class="gg-welcome-icon" viewBox="0 0 48 48" aria-hidden="true" focusable="false"><rect x="7" y="18" width="34" height="23" rx="4" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M5 13h38v6H5z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M24 13v28M24 13c-3-6-11-7-11-2s8 2 11 2c3 0 11 3 11-2s-8-4-11 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg>
+      <h2 id="welcomeTitle">Know who takes what</h2>
+      <p class="gg-lede">Import a save and see, for every person in the game, whether they are shady, their favorite illegal gift, and which gifts will raise their mood and attitude without a refusal.</p>
+      <button class="btn btn-primary gg-import-btn" type="button" data-import>Import a game save</button>
+      <p class="helper">Saves are in <code>%USERPROFILE%\AppData\LocalLow\Weappy\Hollywood Animal\Saves\Profiles\0</code>. Paste that into the file picker's address bar and pick your latest save's <code>.json</code>. It is read in your browser and never uploaded.</p>
+      <p class="helper gg-error" id="welcomeError" role="alert" hidden></p>
+    </div>
+  </section>
+
+  <!-- After a save is imported -->
+  <div class="app gg-app" id="app" hidden>
+    <main class="workspace" id="main">
+      <section class="card gg-summary" aria-labelledby="summaryTitle">
+        <div class="card-head">
+          <div class="card-title">
+            <div>
+              <h2 id="summaryTitle">Gift Guide</h2>
+              <p class="card-sub" id="summaryLine"></p>
+            </div>
+          </div>
+          <button class="btn btn-ghost btn-small" type="button" data-import>Import a newer save</button>
+        </div>
+        <div class="gg-stock" id="stock"></div>
+        <p class="helper gg-error" id="importError" role="alert" hidden></p>
+      </section>
+
+      <section class="card gg-roster" id="roster" aria-labelledby="rosterTitle" tabindex="-1">
+        <h2 class="sr-only" id="rosterTitle">People</h2>
+        <div class="segmented gg-groups" role="tablist" aria-label="Who to show">
+          <button class="segment" type="button" role="tab" id="tab-mine" data-group="mine" aria-controls="rosterBody">Your studio <span class="gg-count" id="count-mine"></span></button>
+          <button class="segment" type="button" role="tab" id="tab-other" data-group="other" aria-controls="rosterBody">Other studios <span class="gg-count" id="count-other"></span></button>
+          <button class="segment" type="button" role="tab" id="tab-free" data-group="free" aria-controls="rosterBody">Free agents <span class="gg-count" id="count-free"></span></button>
+        </div>
+
+        <div class="gg-filters">
+          <div class="search gg-search">
+            <svg class="search-icon" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><circle cx="8.5" cy="8.5" r="5.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m13 13 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <input class="gen-avail-filter" id="filterText" type="search" placeholder="Search names" aria-label="Search names" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="select-wrap select-sm"><select id="filterRole" aria-label="Role"><option value="">All roles</option></select></div>
+          <div class="select-wrap select-sm"><select id="filterVerdict" aria-label="Gift answer">
+            <option value="">Any answer</option>
+            <option value="takes">Takes an illegal gift</option>
+            <option value="legal">Legal gifts only</option>
+            <option value="shadyNoFav">Shady, no favorite</option>
+            <option value="strikes">Has strikes</option>
+            <option value="offended">Offended</option>
+          </select></div>
+          <div class="select-wrap select-sm"><select id="filterGift" aria-label="Favorite gift"><option value="">Any favorite</option></select></div>
+          <div class="select-wrap select-sm" id="filterStudioWrap"><select id="filterStudio" aria-label="Studio"><option value="">All studios</option></select></div>
+        </div>
+
+        <div class="gg-table-wrap" id="rosterBody" role="tabpanel">
+          <table class="gg-table">
+            <thead>
+              <tr>
+                <th scope="col"><button type="button" data-sort="name">Name</button></th>
+                <th scope="col"><button type="button" data-sort="role">Role</button></th>
+                <th scope="col" class="col-studio"><button type="button" data-sort="studio">Studio</button></th>
+                <th scope="col"><button type="button" data-sort="shady">Shady</button></th>
+                <th scope="col"><button type="button" data-sort="favorite">Favorite</button></th>
+                <th scope="col"><button type="button" data-sort="attitude">Attitude</button></th>
+                <th scope="col"><button type="button" data-sort="verdict">Gifts that help</button></th>
+              </tr>
+            </thead>
+            <tbody id="rosterRows"></tbody>
+          </table>
+          <p class="gg-empty" id="rosterEmpty" hidden>Nobody matches these filters.</p>
+        </div>
+      </section>
+    </main>
+
+    <aside class="scorebar gg-side" aria-labelledby="sideTitle">
+      <div class="results-head">
+        <h2 class="results-title" id="sideTitle">Who takes what</h2>
+        <span class="live-pill">Your studio</span>
+      </div>
+      <div id="whoTakes"></div>
+
+      <details class="gg-rules">
+        <summary>How gifts work</summary>
+        <ul>
+          <li><strong>Illegal gifts</strong> are taken only by someone who is <em>shady</em>, and only their one favorite. Addicts also take their favorite drug and just laugh off a different drug.</li>
+          <li><strong>Wrong illegal gift:</strong> 1st refusal is harmless, 2nd costs mood and attitude, 3rd costs a lot of attitude and offends them.</li>
+          <li><strong>Security agents</strong> refuse every illegal gift from the gift screen. A shady agent still values their favorite at 3× in contract negotiations.</li>
+          <li><strong>Legal gifts</strong> are taken by everyone. The same legal gift gives its full boost twice a year per person; a third within 365 days costs 5% attitude instead.</li>
+          <li><strong>Favorites never change</strong> on their own. Becoming an addict switches someone to shady with a drug favorite.</li>
+          <li>Offended people can't receive gifts.</li>
+        </ul>
+      </details>
+    </aside>
+  </div>
+
+  <input type="file" id="saveFile" accept=".json,application/json" hidden>
+
+  <footer class="site-footer">
+    <div class="footer-row">
+      <div class="footer-about">
+        <p>A fan-made tool for Hollywood Animal. It is not affiliated with the game's developers. Your save is read in your browser and the results are kept on this device only.</p>
+        <p><a class="footer-link" href="https://github.com/reyjr77/Hollywood-Animals-Calculator" target="_blank" rel="noopener">This fork on GitHub<span class="sr-only"> (opens in a new tab)</span></a></p>
+      </div>
+      <p class="footer-data" id="dataInfo">Loading game data…</p>
+    </div>
+  </footer>
+
+  <script src="utils/GiftGuide.js?v=3"></script>
+</body>
+</html>

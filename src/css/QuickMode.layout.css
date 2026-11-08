@@ -642,3 +642,8 @@ html.sheet-open { overflow: hidden; }
 .avail-note svg { flex: none; width: 16px; height: 16px; color: var(--gold); }
 .avail-note-edit { margin-left: auto; font-weight: 700; color: var(--gold); }
 .avail-note-edit::after { content: " \203A"; }
+
+/* Phones: the disabled "Advanced Mode" placeholder makes room for the real pages */
+@media (max-width: 639px) {
+  .mode-nav .btn-mode:disabled { display: none; }
+}
