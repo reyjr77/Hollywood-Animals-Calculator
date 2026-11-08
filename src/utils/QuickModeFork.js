@@ -460,6 +460,13 @@ function RenderGenerated(generated) {
   Announce(what + "compatibility " + best.compatibility.toFixed(1) + " out of 5, score modifier " + Signed(best.scoreModifier * 100, 1, "%") + ".");
 }
 
+// The order the game's script screen uses: setting, then protagonist and antagonist, supporting characters, themes
+// and events, and the finale last. (Display only: the search itself fills setting and protagonist first.)
+const RESULT_ORDER = ["setting", "protagonist", "antagonist", "supporting", "themes", "finale"];
+function ResultOrder(groups) {
+  return groups.slice().sort((a, b) => RESULT_ORDER.indexOf(a.key) - RESULT_ORDER.indexOf(b.key));
+}
+
 // Show script `index` (wrapping round at either end). `direction` picks the slide-in animation.
 function ShowScript(index, direction) {
   if (!lastGenerated) return;
@@ -493,7 +500,7 @@ function ShowScript(index, direction) {
   list.textContent = "";
   const best = scripts[0];
   const inBest = new Set(lastGenerated.groups.flatMap((group) => best.picks[group.key].map((pick) => pick.tag.tag_id)));
-  for (const group of lastGenerated.groups) {
+  for (const group of ResultOrder(lastGenerated.groups)) {
     for (const pick of script.picks[group.key]) {
       const item = MakeEl("li", "gen-item");
       item.appendChild(MakeEl("span", "gen-cat", pick.tag.category === "Event" ? "Event" : group.label));
