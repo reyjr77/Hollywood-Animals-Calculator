@@ -125,6 +125,8 @@ function BuildRoster(save, fileName) {
       id: c.id,
       name: NameOf(c),
       role: RoleOf(c),
+      skill: Number(Object.values(c.professions || {})[0]) || 0,      // 0 to 1; the game shows it as stars out of 10
+      limit: Number(c.limit !== undefined ? c.limit : c.Limit) || 0,  // how far the skill can grow
       type: c.type,
       studio,
       group: studio === PLAYER_STUDIO ? "mine" : studio ? "other" : "free",
@@ -350,6 +352,7 @@ function SortValue(p) {
   switch (view.sort) {
     case "name": return p.name.toLowerCase();
     case "role": return p.role.name + " " + p.name;
+    case "skill": return p.skill;
     case "studio": return StudioName(p.studio) + " " + p.name;
     case "shady": return (p.shady ? 0 : 1) + " " + p.name;
     case "favorite": return (p.favorite ? data.gifts[p.favorite].name : "~") + " " + p.name;
@@ -366,10 +369,12 @@ function RenderRoster() {
     const y = SortValue(b);
     return (x < y ? -1 : x > y ? 1 : 0) * view.dir;
   });
+  document.querySelectorAll(".gg-table th").forEach((th) => th.removeAttribute("aria-sort"));
   document.querySelectorAll(".gg-table th button[data-sort]").forEach((button) => {
-    const th = button.parentElement;
-    if (button.dataset.sort === view.sort) th.setAttribute("aria-sort", view.dir > 0 ? "ascending" : "descending");
-    else th.removeAttribute("aria-sort");
+    const on = button.dataset.sort === view.sort;
+    button.classList.toggle("is-sorted", on);
+    button.dataset.dir = on ? (view.dir > 0 ? "asc" : "desc") : "";
+    if (on) button.closest("th").setAttribute("aria-sort", view.dir > 0 ? "ascending" : "descending");
   });
   document.querySelector(".gg-table").classList.toggle("show-studio", view.group === "other");
   $("filterStudioWrap").hidden = view.group !== "other";
@@ -392,8 +397,10 @@ function RenderRoster() {
     if (meta.childNodes.length) name.appendChild(meta);
     tr.appendChild(name);
 
-    const role = El("td", "gg-role", p.role.name);
+    const role = El("td", "gg-role");
     role.dataset.label = "Role";
+    role.appendChild(El("span", "gg-role-name", p.role.name));
+    if (p.skill !== undefined) role.appendChild(SkillMeter(p));
     tr.appendChild(role);
 
     const studio = El("td", "col-studio", StudioName(p.studio));
@@ -434,6 +441,29 @@ function RenderRoster() {
     fragment.appendChild(tr);
   }
   rows.appendChild(fragment);
+}
+
+// Skill the way the game shows it: stars out of 10, with the ceiling the skill can still grow to.
+function SkillMeter(p) {
+  const stars = p.skill * 10;
+  const cap = Math.max(stars, p.limit * 10);
+  const wrap = El("span", "gg-skill");
+  wrap.title = "Skill " + stars.toFixed(1) + " of 10" + (cap > stars + 0.05 ? ", can grow to " + cap.toFixed(1) : ", at their limit");
+  const line = El("span", "gg-skill-line");
+  line.appendChild(El("span", "gg-skill-star", "★"));
+  line.appendChild(El("span", "gg-skill-value", stars.toFixed(1)));
+  if (cap > stars + 0.05) line.appendChild(El("span", "gg-skill-cap", "can reach " + Number(cap.toFixed(1))));
+  else line.appendChild(El("span", "gg-skill-cap", "maxed"));
+  wrap.appendChild(line);
+  const bar = El("span", "gg-skill-bar");
+  const room = El("span", "gg-skill-room");
+  room.style.width = Math.min(100, cap * 10) + "%";
+  const fill = El("span", "gg-skill-fill");
+  fill.style.width = Math.min(100, stars * 10) + "%";
+  bar.appendChild(room);
+  bar.appendChild(fill);
+  wrap.appendChild(bar);
+  return wrap;
 }
 
 // Red at 0, white in the middle, green at 1: the same scale the calculator uses.
@@ -494,6 +524,7 @@ function RenderAll() {
   $("app").hidden = !roster;
   if (!roster) return;
   RenderSummary();
+  if (roster.people.length && roster.people[0].skill === undefined) Toast("Import your save again to see skill levels.");
   RenderWhoTakes();
   GroupCounts();
   FillFilters();

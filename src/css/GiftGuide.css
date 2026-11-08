@@ -129,9 +129,9 @@
 }
 .gg-table th:not(:has(button)) { cursor: default; }
 .gg-table th button:hover { color: var(--bone); }
-.gg-table th[aria-sort] button { color: var(--gold-hi); }
-.gg-table th[aria-sort="ascending"] button::after { content: "\2191"; }
-.gg-table th[aria-sort="descending"] button::after { content: "\2193"; }
+.gg-table th button.is-sorted { color: var(--gold-hi); }
+.gg-table th button.is-sorted[data-dir="asc"]::after { content: "\2191"; }
+.gg-table th button.is-sorted[data-dir="desc"]::after { content: "\2193"; }
 .gg-table th button:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; border-radius: 6px; }
 
 .gg-table td { padding: var(--space-3) 10px; border-bottom: 1px solid var(--chip); vertical-align: top; }
@@ -247,3 +247,20 @@
   .gg-side { order: 1; margin-top: 0; padding: var(--space-5); border: 1px solid var(--outline); border-radius: var(--radius-card); background: var(--card); }
   .gg-roster { order: 2; margin-top: 0 !important; }
 }
+
+/* Skill under the role: stars out of 10 like the game, and the ceiling it can still grow to */
+.gg-role-name { display: block; }
+.gg-skill { display: block; margin-top: 6px; max-width: 150px; }
+.gg-skill-line { display: flex; align-items: baseline; gap: 4px; white-space: nowrap; }
+.gg-skill-star { color: var(--gold); font-size: 0.8125rem; }
+.gg-skill-value { font: 700 0.9375rem/1.2 var(--font-display); color: var(--bone); }
+.gg-skill-cap { font-size: 0.6875rem; color: var(--faint); }
+.gg-skill-bar { position: relative; display: block; height: 4px; margin-top: 4px; border-radius: 999px; background: var(--field); overflow: hidden; }
+.gg-skill-room, .gg-skill-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: inherit; }
+.gg-skill-room { background: color-mix(in srgb, var(--gold) 28%, transparent); }
+.gg-skill-fill { background: var(--gold); }
+
+/* Two sort buttons in the Role column title */
+.gg-th-pair { display: flex; align-items: center; }
+.gg-th-pair button { width: auto !important; padding-right: 4px !important; }
+.gg-th-pair button + button::before { content: "·"; margin-right: 6px; color: var(--faint); }
